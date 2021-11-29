@@ -1,0 +1,136 @@
+---
+title: "Airbnb Data Analysis"
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Importing the Libraries
+
+```{r import libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(DT)
+
+library(dplyr, warn.conflicts = FALSE)
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+```
+
+### Importing the data 
+
+
+```{r ,message=FALSE, warning=FALSE}
+data <- read_csv("airbnb prices.csv")
+```
+### Data
+```{r, warning=FALSE, echo=FALSE}
+
+datatable(
+  data, extensions = 'FixedColumns',
+  options = list(
+  dom = 't',
+  scrollX = TRUE,
+  scrollCollapse = TRUE,
+  pageLength = 5
+))
+#datatable(data, options = list(pageLength = 5, pageWidth=5))
+```
+
+```{r}
+str(data)
+```
+```{r}
+# TOP Earning Hosts
+host_earning <- data %>%
+    group_by(host_id) %>%
+    summarise(total_earning = sum(price)) %>%
+    arrange(-total_earning)
+
+print(host_earning)
+```
+
+```{r}
+knitr::kable(
+  host_earning[1:10, ], 
+  caption = "A knitr kable."
+)
+```
+
+```{r}
+#Room Type and their count grouped by Neighbourhood
+rooms<-data %>% 
+  group_by(neighborhood, room_type) %>% 
+  count(room_type)
+
+print(rooms)
+```
+
+
+```{r}
+#Room Type Vs Bookings (Grouped by Neighbourhood)
+ggplot(data=rooms, aes(x=room_type, y=n, fill=room_type)) + 
+  geom_bar(stat="identity") +
+  geom_text(aes(label=n), vjust=-0.3, size=3)+
+  facet_wrap(~neighborhood) +
+  ylim(0,3000) + 
+  labs(title = "Room Type Vs No. of Bookings (Grouped by Neighbourhood)")+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+```{r}
+#Neighbourhoods with Highest Bookings
+neighborhood_bookings <-data %>% 
+  group_by(neighborhood) %>% 
+  count(neighborhood) %>% 
+  arrange(-n)
+
+print(neighborhood_bookings)
+```
+
+```{r}
+ggplot(data=neighborhood_bookings, aes(x=n, y=reorder(neighborhood,n), fill=n)) + 
+  geom_bar(stat="identity") +
+  geom_text(aes(label=n),hjust=-0.2, size=3.2)+
+  xlim(0,3500)+
+  theme_minimal()
+
+```
+
+
+```{r}
+
+library(data.table)
+library(dplyr)
+library(formattable)
+library(tidyr)
+
+#Set a few color variables to make our table more visually appealing
+
+customGreen0 = "#DeF7E9"
+customGreen = "#71CA97"
+customRed = "#ff7f7f"
+customRed0 = "#ffdfdf"
+
+a1<- data %>% 
+  group_by(room_type) %>% 
+  summarise(price = mean(price))
+
+a2<-data %>% 
+  group_by(room_type) %>% 
+  count(room_type)
+
+room_avg_price<- merge(a1,a2)
+
+formattable(room_avg_price, align =c("l","c","c","c","r"), list(
+  `room_type` = formatter("span", style = ~ style(color = "grey",font.weight = "bold")), 
+  `n`= color_tile(customGreen0, customGreen),
+  `price`= color_tile(customRed0, customRed)
+))
+
+```
